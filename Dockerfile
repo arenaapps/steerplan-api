@@ -1,10 +1,9 @@
 FROM node:20-slim AS base
-RUN corepack enable && corepack prepare yarn@stable --activate
 WORKDIR /app
 
-# Install dependencies
+# Install all dependencies (including devDependencies for build)
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --production=false
+RUN npm install -g yarn@1 && yarn install --frozen-lockfile
 
 # Build
 COPY tsconfig.json ./
@@ -12,11 +11,10 @@ COPY src ./src
 RUN yarn build
 
 # Production
-FROM node:20-slim AS production
-RUN corepack enable && corepack prepare yarn@stable --activate
+FROM node:20-slim
 WORKDIR /app
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --production=true
+RUN npm install -g yarn@1 && yarn install --frozen-lockfile --production=true
 COPY --from=base /app/dist ./dist
 
 ENV NODE_ENV=production
