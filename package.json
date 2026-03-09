@@ -20,6 +20,7 @@
     "fastify": "^5.3.3",
     "fastify-plugin": "^5.0.1",
     "ioredis": "5.9.3",
+    "openai": "^6.27.0",
     "plaid": "^41.3.0",
     "svix": "^1.85.0"
   },

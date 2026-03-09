@@ -29,6 +29,10 @@ export const config = {
     get apiKey() { return required('ANTHROPIC_API_KEY'); },
   },
 
+  openai: {
+    get apiKey() { return required('OPENAI_API_KEY'); },
+  },
+
   upstash: {
     get url() { return process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || ''; },
     get token() { return process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || ''; },

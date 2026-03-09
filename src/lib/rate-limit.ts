@@ -33,6 +33,7 @@ export const ipLimiter = createLimiter('ip', 60, '1 m');
 export const aiChatLimiter = createLimiter('ai-chat', 5, '1 m');
 export const aiCategoriseLimiter = createLimiter('ai-cat', 10, '1 h');
 export const aiBriefingLimiter = createLimiter('ai-brief', 10, '1 h');
+export const aiTranscribeLimiter = createLimiter('ai-transcribe', 10, '1 m');
 
 // Per-user data route limiters
 export const dataWriteLimiter = createLimiter('data-w', 30, '1 m');

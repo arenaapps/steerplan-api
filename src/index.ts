@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import { config } from './config.js';
+import multipart from '@fastify/multipart';
 import { corsPlugin } from './plugins/cors.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { authPlugin } from './plugins/auth.js';
@@ -30,6 +31,7 @@ import { merchantRulesRoutes } from './routes/data/merchant-rules.js';
 import { chatRoutes } from './routes/ai/chat.js';
 import { categoriseRoutes } from './routes/ai/categorise.js';
 import { briefingRoutes } from './routes/ai/briefing.js';
+import { transcribeRoutes } from './routes/ai/transcribe.js';
 import { yapilyInstitutionsRoutes } from './routes/yapily/institutions.js';
 import { yapilyConsentRoutes } from './routes/yapily/consent.js';
 import { yapilySyncRoutes } from './routes/yapily/sync.js';
@@ -49,6 +51,7 @@ const app = Fastify({ logger: true });
 // ── Global plugins ──
 await app.register(corsPlugin);
 await app.register(errorHandlerPlugin);
+await app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024 } });
 
 // ── Health check (no auth) ──
 app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -89,6 +92,7 @@ await app.register(async function apiRoutes(api) {
     await authed.register(chatRoutes, { prefix: '/ai/chat' });
     await authed.register(categoriseRoutes, { prefix: '/ai/categorise' });
     await authed.register(briefingRoutes, { prefix: '/ai/briefing' });
+    await authed.register(transcribeRoutes, { prefix: '/ai/transcribe' });
 
     // Yapily routes
     await authed.register(yapilyInstitutionsRoutes, { prefix: '/yapily/institutions' });
