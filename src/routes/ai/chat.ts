@@ -4,6 +4,11 @@ import { anthropic } from '../../lib/anthropic.js';
 import { SYSTEM_INSTRUCTION_TEMPLATE } from '../../lib/system-instruction.js';
 import { supabase } from '../../lib/supabase.js';
 import { aiChatLimiter, checkRateLimit, rateLimitHeaders } from '../../lib/rate-limit.js';
+import { TOOLS, AUTO_EXECUTE_TOOLS, CONFIRMATION_TOOLS } from '../../lib/tools.js';
+import { executeAutoTool } from '../../lib/tool-executors.js';
+import { Redis } from '@upstash/redis';
+import { config } from '../../config.js';
+import { randomUUID } from 'crypto';
 
 function parseSuggestionsFromText(text: string): { text: string; suggestedQuestions?: string[] } {
   const match = text.match(/\[suggestions:\s*(.+)\]\s*$/);
@@ -61,6 +66,7 @@ function parseResponse(raw: string): { text: string; uiBlocks?: any[]; suggested
 }
 
 const FREE_DAILY_LIMIT = 10;
+const MAX_TOOL_ITERATIONS = 5;
 
 async function checkAndIncrementLimit(userId: string): Promise<{ allowed: boolean; used: number }> {
   try {
@@ -92,6 +98,19 @@ async function checkAndIncrementLimit(userId: string): Promise<{ allowed: boolea
   } catch {
     return { allowed: false, used: FREE_DAILY_LIMIT };
   }
+}
+
+function getRedis(): Redis | null {
+  if (!config.upstash.configured) return null;
+  return new Redis({ url: config.upstash.url, token: config.upstash.token });
+}
+
+/** Extract all text blocks from a Claude message response */
+function extractText(content: Anthropic.ContentBlock[]): string {
+  return content
+    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+    .map((b) => b.text)
+    .join('');
 }
 
 export async function chatRoutes(app: FastifyInstance) {
@@ -127,14 +146,6 @@ export async function chatRoutes(app: FastifyInstance) {
       { role: 'user', content: message },
     ];
 
-    const stream = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
-      system: systemInstruction,
-      messages,
-      stream: true,
-    });
-
     // Hijack the reply to write raw SSE
     reply.hijack();
     reply.raw.writeHead(200, {
@@ -145,27 +156,160 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     let fullText = '';
-    try {
-      for await (const event of stream) {
-        if (
-          event.type === 'content_block_delta' &&
-          event.delta.type === 'text_delta'
-        ) {
-          const text = event.delta.text;
-          fullText += text;
-          reply.raw.write(`data: ${JSON.stringify({ type: 'delta', text })}\n\n`);
-        }
-      }
 
-      const { text: cleanText, uiBlocks, suggestedQuestions } = parseResponse(fullText);
-      reply.raw.write(
-        `data: ${JSON.stringify({
-          type: 'done',
-          text: cleanText,
-          uiBlocks: uiBlocks ?? null,
-          suggestedQuestions: suggestedQuestions ?? null,
-        })}\n\n`
-      );
+    try {
+      // ── Agentic loop: up to MAX_TOOL_ITERATIONS ──
+      for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
+        const isLastIteration = iteration === MAX_TOOL_ITERATIONS - 1;
+
+        // For intermediate iterations, use non-streaming to collect tool_use blocks easily.
+        // For the final response (end_turn), stream text for typing animation.
+        const response = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 2048,
+          system: systemInstruction,
+          messages,
+          tools: isLastIteration ? undefined : TOOLS,
+        });
+
+        const stopReason = response.stop_reason;
+
+        // ── end_turn: stream the final text to the client ──
+        if (stopReason === 'end_turn' || stopReason === 'max_tokens') {
+          const text = extractText(response.content);
+
+          // Stream the text character-by-character in chunks for typing animation
+          const chunkSize = 8;
+          for (let i = 0; i < text.length; i += chunkSize) {
+            const chunk = text.slice(i, i + chunkSize);
+            fullText += chunk;
+            reply.raw.write(`data: ${JSON.stringify({ type: 'delta', text: chunk })}\n\n`);
+          }
+
+          const { text: cleanText, uiBlocks, suggestedQuestions } = parseResponse(fullText);
+          reply.raw.write(
+            `data: ${JSON.stringify({
+              type: 'done',
+              text: cleanText,
+              uiBlocks: uiBlocks ?? null,
+              suggestedQuestions: suggestedQuestions ?? null,
+            })}\n\n`
+          );
+          break;
+        }
+
+        // ── tool_use: process tool calls ──
+        if (stopReason === 'tool_use') {
+          const toolUseBlocks = response.content.filter(
+            (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use'
+          );
+
+          // Check if any tool requires confirmation
+          const confirmationTool = toolUseBlocks.find((t) => CONFIRMATION_TOOLS.has(t.name));
+
+          if (confirmationTool) {
+            // Stream any text that came before the tool call
+            const textBeforeTool = extractText(response.content);
+            if (textBeforeTool) {
+              fullText += textBeforeTool;
+              reply.raw.write(`data: ${JSON.stringify({ type: 'delta', text: textBeforeTool })}\n\n`);
+            }
+
+            // Store conversation state in Redis for resumption
+            const paymentId = randomUUID();
+            const redis = getRedis();
+
+            if (redis) {
+              const pendingState = {
+                userId,
+                messages,
+                responseContent: response.content,
+                toolBlock: confirmationTool,
+                systemInstruction,
+                fullTextSoFar: fullText,
+              };
+
+              await redis.set(`payment:${paymentId}`, JSON.stringify(pendingState), { ex: 300 });
+            }
+
+            // Build payment details for the confirmation sheet
+            const toolInput = confirmationTool.input as Record<string, any>;
+            const paymentDetails = {
+              type: confirmationTool.name === 'create_standing_order' ? 'standing_order' : 'one_off',
+              recipient_name: toolInput.recipient_name,
+              amount: toolInput.amount,
+              currency: 'GBP',
+              reference: toolInput.reference,
+              sort_code: toolInput.sort_code,
+              account_number: toolInput.account_number,
+              source_account_id: toolInput.source_account_id,
+              ...(confirmationTool.name === 'create_standing_order' && {
+                frequency: toolInput.frequency,
+                start_date: toolInput.start_date,
+              }),
+            };
+
+            // Emit payment_pending event
+            reply.raw.write(
+              `data: ${JSON.stringify({
+                type: 'payment_pending',
+                paymentId,
+                details: paymentDetails,
+              })}\n\n`
+            );
+
+            // Send a done event with text so far (if any)
+            const { text: cleanText, uiBlocks, suggestedQuestions } = parseResponse(fullText || '');
+            reply.raw.write(
+              `data: ${JSON.stringify({
+                type: 'done',
+                text: cleanText || '',
+                uiBlocks: uiBlocks ?? null,
+                suggestedQuestions: suggestedQuestions ?? null,
+              })}\n\n`
+            );
+            break;
+          }
+
+          // All tools are auto-execute — run them and continue the loop
+          // Append the assistant's response (with tool_use blocks) to messages
+          messages.push({ role: 'assistant', content: response.content });
+
+          // Execute each auto tool and collect results
+          const toolResults: Anthropic.ToolResultBlockParam[] = [];
+          for (const toolBlock of toolUseBlocks) {
+            if (AUTO_EXECUTE_TOOLS.has(toolBlock.name)) {
+              try {
+                const result = await executeAutoTool(
+                  toolBlock.name,
+                  toolBlock.input as Record<string, any>,
+                  userId,
+                );
+                toolResults.push({
+                  type: 'tool_result',
+                  tool_use_id: toolBlock.id,
+                  content: result,
+                });
+              } catch (err: any) {
+                toolResults.push({
+                  type: 'tool_result',
+                  tool_use_id: toolBlock.id,
+                  content: JSON.stringify({ error: err?.message ?? 'Tool execution failed' }),
+                  is_error: true,
+                });
+              }
+            }
+          }
+
+          // Append tool results as user message
+          messages.push({ role: 'user', content: toolResults });
+          // Continue the loop — Claude will process tool results
+          continue;
+        }
+
+        // Unknown stop reason — break
+        break;
+      }
     } catch (err: any) {
       reply.raw.write(
         `data: ${JSON.stringify({ type: 'error', error: err?.message ?? 'Stream error' })}\n\n`

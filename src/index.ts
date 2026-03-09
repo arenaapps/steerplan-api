@@ -29,6 +29,7 @@ import { stateRoutes } from './routes/data/state.js';
 import { timelineRoutes } from './routes/data/timeline.js';
 import { merchantRulesRoutes } from './routes/data/merchant-rules.js';
 import { chatRoutes } from './routes/ai/chat.js';
+import { confirmRoutes } from './routes/ai/confirm.js';
 import { categoriseRoutes } from './routes/ai/categorise.js';
 import { briefingRoutes } from './routes/ai/briefing.js';
 import { transcribeRoutes } from './routes/ai/transcribe.js';
@@ -91,6 +92,7 @@ await app.register(async function apiRoutes(api) {
 
     // AI routes
     await authed.register(chatRoutes, { prefix: '/ai/chat' });
+    await authed.register(confirmRoutes, { prefix: '/ai/chat/confirm' });
     await authed.register(categoriseRoutes, { prefix: '/ai/categorise' });
     await authed.register(briefingRoutes, { prefix: '/ai/briefing' });
     await authed.register(transcribeRoutes, { prefix: '/ai/transcribe' });
