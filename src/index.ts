@@ -32,6 +32,7 @@ import { chatRoutes } from './routes/ai/chat.js';
 import { categoriseRoutes } from './routes/ai/categorise.js';
 import { briefingRoutes } from './routes/ai/briefing.js';
 import { transcribeRoutes } from './routes/ai/transcribe.js';
+import { ttsRoutes } from './routes/ai/tts.js';
 import { yapilyInstitutionsRoutes } from './routes/yapily/institutions.js';
 import { yapilyConsentRoutes } from './routes/yapily/consent.js';
 import { yapilySyncRoutes } from './routes/yapily/sync.js';
@@ -93,6 +94,7 @@ await app.register(async function apiRoutes(api) {
     await authed.register(categoriseRoutes, { prefix: '/ai/categorise' });
     await authed.register(briefingRoutes, { prefix: '/ai/briefing' });
     await authed.register(transcribeRoutes, { prefix: '/ai/transcribe' });
+    await authed.register(ttsRoutes, { prefix: '/ai/tts' });
 
     // Yapily routes
     await authed.register(yapilyInstitutionsRoutes, { prefix: '/yapily/institutions' });
