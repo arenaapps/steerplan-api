@@ -5,45 +5,43 @@ import { config } from '../../config.js';
 import { supabase } from '../../lib/supabase.js';
 import { encryptPayload, decryptPayload } from '../../lib/encryption.js';
 
-async function getOrCreateUserToken(userId: string): Promise<string> {
-  // Check for existing user_token
+/**
+ * Get or create a Plaid user_id for the given Clerk user.
+ * Post-Dec 2025 integrations use `user_id` (not `user_token`).
+ */
+async function getOrCreatePlaidUserId(clerkUserId: string): Promise<string> {
+  // Check for existing
   const { data: existing } = await supabase
     .from('plaid_user_tokens')
-    .select('user_token_enc')
-    .eq('clerk_user_id', userId)
+    .select('plaid_user_id')
+    .eq('clerk_user_id', clerkUserId)
     .single();
 
-  if (existing?.user_token_enc) {
-    const decrypted = await decryptPayload<string>(existing.user_token_enc);
-    // user_token format is "user-<environment>-<id>", validate before returning
-    if (decrypted && typeof decrypted === 'string' && decrypted.startsWith('user-')) {
-      return decrypted;
-    }
-    // Invalid/stale token — delete and recreate below
-    await supabase.from('plaid_user_tokens').delete().eq('clerk_user_id', userId);
+  if (existing?.plaid_user_id) {
+    return existing.plaid_user_id;
   }
 
-  // Create new user_token
+  // Create new Plaid user
   const response = await plaidClient.userCreate({
-    client_user_id: userId,
+    client_user_id: clerkUserId,
   });
 
+  const plaidUserId = response.data.user_id;
+
+  // Also store user_token if returned (legacy integrations)
   const userToken = response.data.user_token;
-  if (!userToken) {
-    throw new Error('Plaid userCreate did not return a user_token');
-  }
-  const userTokenEnc = await encryptPayload(userToken);
+  const userTokenEnc = userToken ? await encryptPayload(userToken) : null;
 
   await supabase.from('plaid_user_tokens').upsert({
-    clerk_user_id: userId,
-    user_token_enc: userTokenEnc,
-    plaid_user_id: response.data.user_id,
+    clerk_user_id: clerkUserId,
+    user_token_enc: userTokenEnc ?? '',
+    plaid_user_id: plaidUserId,
   });
 
-  return userToken;
+  return plaidUserId;
 }
 
-export { getOrCreateUserToken };
+export { getOrCreatePlaidUserId };
 
 export async function plaidLinkTokenRoutes(app: FastifyInstance) {
   app.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -53,12 +51,12 @@ export async function plaidLinkTokenRoutes(app: FastifyInstance) {
       const redirectUri = config.plaid.redirectUri;
 
       const products: Products[] = [Products.Transactions];
-      let userToken: string | undefined;
+      let plaidUserId: string | undefined;
       let incomeVerification: Record<string, unknown> | undefined;
 
       if (includeIncome) {
         products.push(Products.IncomeVerification);
-        userToken = await getOrCreateUserToken(request.userId);
+        plaidUserId = await getOrCreatePlaidUserId(request.userId);
         incomeVerification = {
           income_source_types: [IncomeVerificationSourceType.Bank],
           bank_income: { days_requested: 365 },
@@ -72,7 +70,7 @@ export async function plaidLinkTokenRoutes(app: FastifyInstance) {
         country_codes: [CountryCode.Gb],
         language: 'en',
         ...(redirectUri ? { redirect_uri: redirectUri } : {}),
-        ...(userToken ? { user_token: userToken } : {}),
+        ...(plaidUserId ? { user_id: plaidUserId } : {}),
         ...(incomeVerification ? { income_verification: incomeVerification } : {}),
       });
 

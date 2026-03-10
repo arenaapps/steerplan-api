@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { plaidClient } from '../../lib/plaid.js';
 import { supabase } from '../../lib/supabase.js';
-import { decryptPayload, encryptPayload } from '../../lib/encryption.js';
+import { encryptPayload, decryptPayload } from '../../lib/encryption.js';
 
 interface IncomeSource {
   id: string;
@@ -43,26 +43,21 @@ function formatCategory(cat?: string): string {
 export async function plaidBankIncomeRoutes(app: FastifyInstance) {
   app.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      // Get user_token
+      // Get plaid_user_id
       const { data: tokenRow } = await supabase
         .from('plaid_user_tokens')
-        .select('user_token_enc')
+        .select('plaid_user_id')
         .eq('clerk_user_id', request.userId)
         .single();
 
-      if (!tokenRow?.user_token_enc) {
-        return reply.code(400).send({ error: 'No Plaid user token found. Connect a bank first.' });
+      if (!tokenRow?.plaid_user_id) {
+        return reply.code(400).send({ error: 'No Plaid user found. Connect a bank first.' });
       }
 
-      const userToken = await decryptPayload<string>(tokenRow.user_token_enc);
-      if (!userToken) {
-        return reply.code(500).send({ error: 'Failed to decrypt user token' });
-      }
-
-      // Fetch bank income from Plaid
+      // Fetch bank income from Plaid using user_id (cast needed — SDK types lag behind API)
       const incomeResponse = await plaidClient.creditBankIncomeGet({
-        user_token: userToken,
-      });
+        user_id: tokenRow.plaid_user_id,
+      } as any);
 
       const bankIncomeReports = incomeResponse.data.bank_income;
       const incomeSources: IncomeSource[] = [];
