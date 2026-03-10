@@ -15,7 +15,10 @@ export async function finexerGet(path: string, params?: Record<string, string>) 
       Authorization: `Basic ${getAuth()}`,
     },
   });
-  if (!res.ok) throw new Error(`Finexer GET ${path} → ${res.status}`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Finexer GET ${path} → ${res.status}: ${text}`);
+  }
   return res.json();
 }
 
@@ -31,6 +34,9 @@ export async function finexerPost(path: string, body: [string, string][]) {
     },
     body: params.toString(),
   });
-  if (!res.ok) throw new Error(`Finexer POST ${path} → ${res.status}`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Finexer POST ${path} → ${res.status}: ${text}`);
+  }
   return res.json();
 }
