@@ -44,6 +44,10 @@ import { plaidSyncRoutes } from './routes/plaid/sync.js';
 import { plaidDisconnectRoutes } from './routes/plaid/disconnect.js';
 import { plaidBankIncomeRoutes } from './routes/plaid/bank-income.js';
 import { plaidIncomeLinkTokenRoutes } from './routes/plaid/income-link-token.js';
+import { finexerProvidersRoutes } from './routes/finexer/providers.js';
+import { finexerConsentRoutes } from './routes/finexer/consent.js';
+import { finexerSyncRoutes } from './routes/finexer/sync.js';
+import { finexerDisconnectRoutes } from './routes/finexer/disconnect.js';
 
 // Workers
 import { startEmailWorker } from './queues/workers/email.worker.js';
@@ -113,6 +117,12 @@ await app.register(async function apiRoutes(api) {
     await authed.register(plaidDisconnectRoutes, { prefix: '/plaid/disconnect' });
     await authed.register(plaidBankIncomeRoutes, { prefix: '/plaid/bank-income' });
     await authed.register(plaidIncomeLinkTokenRoutes, { prefix: '/plaid/income-link-token' });
+
+    // Finexer routes
+    await authed.register(finexerProvidersRoutes, { prefix: '/finexer/providers' });
+    await authed.register(finexerConsentRoutes, { prefix: '/finexer/consent' });
+    await authed.register(finexerSyncRoutes, { prefix: '/finexer/sync' });
+    await authed.register(finexerDisconnectRoutes, { prefix: '/finexer/disconnect' });
   });
 }, { prefix: '/api' });
 

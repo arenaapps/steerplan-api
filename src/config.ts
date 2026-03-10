@@ -55,4 +55,9 @@ export const config = {
     get env() { return optional('PLAID_ENV', 'sandbox'); },
     get redirectUri() { return process.env.PLAID_REDIRECT_URI || null; },
   },
+
+  finexer: {
+    get apiKey() { return required('FINEXER_API_KEY'); },
+    get returnUrl() { return optional('FINEXER_RETURN_URL', 'steerplan://finexer/callback'); },
+  },
 };
