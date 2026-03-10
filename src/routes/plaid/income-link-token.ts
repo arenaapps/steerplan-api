@@ -10,18 +10,13 @@ export async function plaidIncomeLinkTokenRoutes(app: FastifyInstance) {
       const redirectUri = config.plaid.redirectUri;
       const plaidUser = await getOrCreatePlaidUser(request.userId);
 
-      // Income verification requires user_token; fall back to user_id
-      const userIdField: Record<string, string> = plaidUser.user_token
-        ? { user_token: plaidUser.user_token }
-        : { user_id: plaidUser.plaid_user_id };
-
       const response = await plaidClient.linkTokenCreate({
         user: { client_user_id: request.userId },
         client_name: 'Steerplan',
         products: [Products.IncomeVerification],
         country_codes: [CountryCode.Gb],
         language: 'en',
-        ...userIdField,
+        user_token: plaidUser.user_token,
         income_verification: {
           income_source_types: [IncomeVerificationSourceType.Bank],
           bank_income: { days_requested: 365 },

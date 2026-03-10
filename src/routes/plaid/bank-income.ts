@@ -43,28 +43,23 @@ function formatCategory(cat?: string): string {
 export async function plaidBankIncomeRoutes(app: FastifyInstance) {
   app.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      // Get plaid user credentials
+      // Get user_token (required for creditBankIncomeGet)
       const { data: tokenRow } = await supabase
         .from('plaid_user_tokens')
-        .select('plaid_user_id, user_token_enc')
+        .select('user_token_enc')
         .eq('clerk_user_id', request.userId)
         .single();
 
-      if (!tokenRow?.plaid_user_id) {
-        return reply.code(400).send({ error: 'No Plaid user found. Connect a bank first.' });
+      if (!tokenRow?.user_token_enc) {
+        return reply.code(400).send({ error: 'No Plaid user token found. Connect a bank first.' });
       }
 
-      // creditBankIncomeGet requires user_token for income; fall back to user_id
-      let userToken: string | null = null;
-      if (tokenRow.user_token_enc) {
-        userToken = await decryptPayload<string>(tokenRow.user_token_enc) ?? null;
+      const userToken = await decryptPayload<string>(tokenRow.user_token_enc);
+      if (!userToken) {
+        return reply.code(500).send({ error: 'Failed to decrypt user token' });
       }
 
-      const creditRequest: Record<string, string> = userToken
-        ? { user_token: userToken }
-        : { user_id: tokenRow.plaid_user_id };
-
-      const incomeResponse = await plaidClient.creditBankIncomeGet(creditRequest as any);
+      const incomeResponse = await plaidClient.creditBankIncomeGet({ user_token: userToken });
 
       const bankIncomeReports = incomeResponse.data.bank_income;
       const incomeSources: IncomeSource[] = [];
