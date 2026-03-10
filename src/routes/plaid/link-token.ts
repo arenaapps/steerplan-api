@@ -15,7 +15,12 @@ async function getOrCreateUserToken(userId: string): Promise<string> {
 
   if (existing?.user_token_enc) {
     const decrypted = await decryptPayload<string>(existing.user_token_enc);
-    if (decrypted) return decrypted;
+    // user_token format is "user-<environment>-<id>", validate before returning
+    if (decrypted && typeof decrypted === 'string' && decrypted.startsWith('user-')) {
+      return decrypted;
+    }
+    // Invalid/stale token — delete and recreate below
+    await supabase.from('plaid_user_tokens').delete().eq('clerk_user_id', userId);
   }
 
   // Create new user_token
@@ -23,7 +28,10 @@ async function getOrCreateUserToken(userId: string): Promise<string> {
     client_user_id: userId,
   });
 
-  const userToken = response.data.user_token ?? response.data.user_id;
+  const userToken = response.data.user_token;
+  if (!userToken) {
+    throw new Error('Plaid userCreate did not return a user_token');
+  }
   const userTokenEnc = await encryptPayload(userToken);
 
   await supabase.from('plaid_user_tokens').upsert({
