@@ -64,46 +64,50 @@ export async function plaidBankIncomeRoutes(app: FastifyInstance) {
         user_token: userToken,
       });
 
-      const bankIncomeReport = incomeResponse.data.bank_income;
+      const bankIncomeReports = incomeResponse.data.bank_income;
       const incomeSources: IncomeSource[] = [];
 
-      if (bankIncomeReport?.bank_income_sources) {
-        for (const source of bankIncomeReport.bank_income_sources) {
-          const totalAmount = source.total_amount ?? 0;
-          const startDate = source.start_date;
-          const endDate = source.end_date;
+      if (bankIncomeReports) {
+        for (const report of bankIncomeReports) {
+          for (const item of report.items ?? []) {
+            for (const source of item.bank_income_sources ?? []) {
+              const totalAmount = source.total_amount ?? 0;
+              const startDate = source.start_date;
+              const endDate = source.end_date;
 
-          // Calculate per-period average
-          let periodAmount = Math.abs(totalAmount);
-          if (startDate && endDate) {
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            const daysDiff = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-            const freq = mapFrequency(source.pay_frequency);
-            if (freq === 'month') {
-              const months = Math.max(1, daysDiff / 30);
-              periodAmount = Math.abs(totalAmount) / months;
-            } else if (freq === 'week') {
-              const weeks = Math.max(1, daysDiff / 7);
-              periodAmount = Math.abs(totalAmount) / weeks;
-            } else {
-              periodAmount = Math.abs(totalAmount) / daysDiff;
+              // Calculate per-period average
+              let periodAmount = Math.abs(totalAmount);
+              if (startDate && endDate) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                const daysDiff = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                const freq = mapFrequency(source.pay_frequency);
+                if (freq === 'month') {
+                  const months = Math.max(1, daysDiff / 30);
+                  periodAmount = Math.abs(totalAmount) / months;
+                } else if (freq === 'week') {
+                  const weeks = Math.max(1, daysDiff / 7);
+                  periodAmount = Math.abs(totalAmount) / weeks;
+                } else {
+                  periodAmount = Math.abs(totalAmount) / daysDiff;
+                }
+              }
+
+              incomeSources.push({
+                id: `plaid-inc-${source.income_source_id ?? Date.now()}`,
+                label: source.income_description || formatCategory(source.income_category),
+                amount: periodAmount.toFixed(2),
+                date: new Date().toISOString().split('T')[0],
+                status: 'pending',
+                frequency: mapFrequency(source.pay_frequency),
+                source: 'bank',
+                plaidIncomeSourceId: source.income_source_id,
+                incomeCategory: formatCategory(source.income_category),
+                paidWeeks: [],
+                paidMonths: [],
+              });
             }
           }
-
-          incomeSources.push({
-            id: `plaid-inc-${source.income_source_id ?? Date.now()}`,
-            label: source.income_description || formatCategory(source.income_category),
-            amount: periodAmount.toFixed(2),
-            date: new Date().toISOString().split('T')[0],
-            status: 'pending',
-            frequency: mapFrequency(source.pay_frequency),
-            source: 'bank',
-            plaidIncomeSourceId: source.income_source_id,
-            incomeCategory: formatCategory(source.income_category),
-            paidWeeks: [],
-            paidMonths: [],
-          });
         }
       }
 

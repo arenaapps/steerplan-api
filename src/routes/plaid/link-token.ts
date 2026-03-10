@@ -23,7 +23,7 @@ async function getOrCreateUserToken(userId: string): Promise<string> {
     client_user_id: userId,
   });
 
-  const userToken = response.data.user_token;
+  const userToken = response.data.user_token ?? response.data.user_id;
   const userTokenEnc = await encryptPayload(userToken);
 
   await supabase.from('plaid_user_tokens').upsert({
