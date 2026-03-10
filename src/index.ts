@@ -42,6 +42,8 @@ import { plaidLinkTokenRoutes } from './routes/plaid/link-token.js';
 import { plaidExchangeRoutes } from './routes/plaid/exchange.js';
 import { plaidSyncRoutes } from './routes/plaid/sync.js';
 import { plaidDisconnectRoutes } from './routes/plaid/disconnect.js';
+import { plaidBankIncomeRoutes } from './routes/plaid/bank-income.js';
+import { plaidIncomeLinkTokenRoutes } from './routes/plaid/income-link-token.js';
 
 // Workers
 import { startEmailWorker } from './queues/workers/email.worker.js';
@@ -109,6 +111,8 @@ await app.register(async function apiRoutes(api) {
     await authed.register(plaidExchangeRoutes, { prefix: '/plaid/exchange' });
     await authed.register(plaidSyncRoutes, { prefix: '/plaid/sync' });
     await authed.register(plaidDisconnectRoutes, { prefix: '/plaid/disconnect' });
+    await authed.register(plaidBankIncomeRoutes, { prefix: '/plaid/bank-income' });
+    await authed.register(plaidIncomeLinkTokenRoutes, { prefix: '/plaid/income-link-token' });
   });
 }, { prefix: '/api' });
 
