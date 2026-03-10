@@ -42,7 +42,7 @@ export async function finexerDisconnectRoutes(app: FastifyInstance) {
 
     // Revoke consent on Finexer
     try {
-      await finexerPost(`/consents/${consentId}/revoke`, {});
+      await finexerPost(`/consents/${consentId}/revoke`, []);
     } catch (err: any) {
       request.log.error(`Finexer consent revoke error: ${err.message}`);
       // Continue with local cleanup even if revoke fails

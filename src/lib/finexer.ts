@@ -19,14 +19,17 @@ export async function finexerGet(path: string, params?: Record<string, string>) 
   return res.json();
 }
 
-export async function finexerPost(path: string, body: Record<string, string>) {
+export async function finexerPost(path: string, body: [string, string][]) {
+  const params = new URLSearchParams();
+  for (const [key, value] of body) params.append(key, value);
+
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${getAuth()}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: new URLSearchParams(body).toString(),
+    body: params.toString(),
   });
   if (!res.ok) throw new Error(`Finexer POST ${path} → ${res.status}`);
   return res.json();

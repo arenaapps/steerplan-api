@@ -26,7 +26,7 @@ export async function finexerConsentRoutes(app: FastifyInstance) {
         const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'User';
         const email = user.emailAddresses?.[0]?.emailAddress || '';
 
-        const customerResult = await finexerPost('/customers', { name, email });
+        const customerResult = await finexerPost('/customers', [['name', name], ['email', email]]);
         customerId = customerResult.data?.id ?? customerResult.id;
 
         if (!customerId) {
@@ -43,15 +43,17 @@ export async function finexerConsentRoutes(app: FastifyInstance) {
       const retroDate = new Date();
       retroDate.setFullYear(retroDate.getFullYear() - 1);
 
-      const consentBody: Record<string, string> = {
-        customer: customerId,
-        'scopes[]': 'accounts,balance,transactions',
-        return_url: config.finexer.returnUrl,
-        retro_date: retroDate.toISOString().slice(0, 10),
-      };
+      const consentBody: [string, string][] = [
+        ['customer', customerId],
+        ['scopes[]', 'accounts'],
+        ['scopes[]', 'balance'],
+        ['scopes[]', 'transactions'],
+        ['return_url', config.finexer.returnUrl],
+        ['retro_date', retroDate.toISOString().slice(0, 10)],
+      ];
 
       if (body?.providerId) {
-        consentBody.provider = body.providerId;
+        consentBody.push(['provider', body.providerId]);
       }
 
       const consentResult = await finexerPost('/consents', consentBody);

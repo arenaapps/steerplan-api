@@ -72,7 +72,7 @@ export async function finexerSyncRoutes(app: FastifyInstance) {
 
         // Trigger sync
         try {
-          await finexerPost(`/bank_accounts/${accountId}/sync`, {});
+          await finexerPost(`/bank_accounts/${accountId}/sync`, []);
 
           // Brief wait for sync to process
           await sleep(2000);
