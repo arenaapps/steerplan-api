@@ -2,13 +2,18 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { plaidClient } from '../../lib/plaid.js';
 import { CountryCode, Products, IncomeVerificationSourceType } from 'plaid';
 import { config } from '../../config.js';
-import { getOrCreatePlaidUserId } from './link-token.js';
+import { getOrCreatePlaidUser } from './link-token.js';
 
 export async function plaidIncomeLinkTokenRoutes(app: FastifyInstance) {
   app.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const redirectUri = config.plaid.redirectUri;
-      const plaidUserId = await getOrCreatePlaidUserId(request.userId);
+      const plaidUser = await getOrCreatePlaidUser(request.userId);
+
+      // Income verification requires user_token; fall back to user_id
+      const userIdField: Record<string, string> = plaidUser.user_token
+        ? { user_token: plaidUser.user_token }
+        : { user_id: plaidUser.plaid_user_id };
 
       const response = await plaidClient.linkTokenCreate({
         user: { client_user_id: request.userId },
@@ -16,7 +21,7 @@ export async function plaidIncomeLinkTokenRoutes(app: FastifyInstance) {
         products: [Products.IncomeVerification],
         country_codes: [CountryCode.Gb],
         language: 'en',
-        user_id: plaidUserId,
+        ...userIdField,
         income_verification: {
           income_source_types: [IncomeVerificationSourceType.Bank],
           bank_income: { days_requested: 365 },

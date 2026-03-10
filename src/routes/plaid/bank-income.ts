@@ -43,10 +43,10 @@ function formatCategory(cat?: string): string {
 export async function plaidBankIncomeRoutes(app: FastifyInstance) {
   app.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      // Get plaid_user_id
+      // Get plaid user credentials
       const { data: tokenRow } = await supabase
         .from('plaid_user_tokens')
-        .select('plaid_user_id')
+        .select('plaid_user_id, user_token_enc')
         .eq('clerk_user_id', request.userId)
         .single();
 
@@ -54,10 +54,17 @@ export async function plaidBankIncomeRoutes(app: FastifyInstance) {
         return reply.code(400).send({ error: 'No Plaid user found. Connect a bank first.' });
       }
 
-      // Fetch bank income from Plaid using user_id (cast needed — SDK types lag behind API)
-      const incomeResponse = await plaidClient.creditBankIncomeGet({
-        user_id: tokenRow.plaid_user_id,
-      } as any);
+      // creditBankIncomeGet requires user_token for income; fall back to user_id
+      let userToken: string | null = null;
+      if (tokenRow.user_token_enc) {
+        userToken = await decryptPayload<string>(tokenRow.user_token_enc) ?? null;
+      }
+
+      const creditRequest: Record<string, string> = userToken
+        ? { user_token: userToken }
+        : { user_id: tokenRow.plaid_user_id };
+
+      const incomeResponse = await plaidClient.creditBankIncomeGet(creditRequest as any);
 
       const bankIncomeReports = incomeResponse.data.bank_income;
       const incomeSources: IncomeSource[] = [];
