@@ -12,7 +12,10 @@ export async function yapilyGet(path: string, consentToken?: string) {
   };
   if (consentToken) headers['Consent'] = consentToken;
   const res = await fetch(`${BASE}${path}`, { headers });
-  if (!res.ok) throw new Error(`Yapily ${path} → ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Yapily ${path} → ${res.status}: ${body.slice(0, 500)}`);
+  }
   return res.json();
 }
 

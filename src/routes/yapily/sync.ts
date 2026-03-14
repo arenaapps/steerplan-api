@@ -58,7 +58,7 @@ export async function yapilySyncRoutes(app: FastifyInstance) {
       const backfillMonths = profile?.backfill_months ?? 3;
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - backfillMonths);
-      const fromDate = threeMonthsAgo.toISOString().slice(0, 10);
+      const fromDate = threeMonthsAgo.toISOString();
 
       const { data: consents, error: consentsError } = await supabase
         .from('yapily_consents')
