@@ -48,6 +48,7 @@ import { finexerProvidersRoutes } from './routes/finexer/providers.js';
 import { finexerConsentRoutes } from './routes/finexer/consent.js';
 import { finexerSyncRoutes } from './routes/finexer/sync.js';
 import { finexerDisconnectRoutes } from './routes/finexer/disconnect.js';
+import { giphyRoutes } from './routes/giphy.js';
 
 // Workers
 import { startEmailWorker } from './queues/workers/email.worker.js';
@@ -123,6 +124,9 @@ await app.register(async function apiRoutes(api) {
     await authed.register(finexerConsentRoutes, { prefix: '/finexer/consent' });
     await authed.register(finexerSyncRoutes, { prefix: '/finexer/sync' });
     await authed.register(finexerDisconnectRoutes, { prefix: '/finexer/disconnect' });
+
+    // Giphy proxy
+    await authed.register(giphyRoutes, { prefix: '/giphy' });
   });
 }, { prefix: '/api' });
 

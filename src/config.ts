@@ -60,4 +60,8 @@ export const config = {
     get apiKey() { return required('FINEXER_API_KEY'); },
     get returnUrl() { return optional('FINEXER_RETURN_URL', 'steerplan://finexer/callback'); },
   },
+
+  giphy: {
+    get apiKey() { return required('GIPHY_API_KEY'); },
+  },
 };

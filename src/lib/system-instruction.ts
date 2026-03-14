@@ -359,7 +359,8 @@ Return ONLY:
     { "type": "comparison", "title": "string", "items": [{ "label": "string", "current": "£1,200", "previous": "£1,050", "change": "+14%" }] },
     { "type": "callout", "style": "warning|tip|info|success", "title": "string", "message": "string" },
     { "type": "donut_chart", "title": "string", "items": [{ "label": "string", "value": 500, "color": "#optional" }] },
-    { "type": "reassign", "merchant": "LemFi", "amount": 128.34, "currentCategory": "Debt & Loans" }
+    { "type": "reassign", "merchant": "LemFi", "amount": 128.34, "currentCategory": "Debt & Loans" },
+    { "type": "gif", "query": "celebration money", "caption": "optional caption text" }
   ],
   "suggestedQuestions": ["short follow-up question 1", "short follow-up question 2"]
 }
@@ -375,6 +376,7 @@ Return ONLY:
 - **reassign**: when a user says a transaction is miscategorised or belongs in a different category, return a reassign block so they can correct it inline. Include the merchant name, amount, and current category name exactly as it appears in their outgoings data.
 - **reminder**: calendar reminders
 - **budget**: budget creation
+- **gif**: reaction GIFs to add personality to responses. Use for celebrations (hitting savings goals, paying off debt), encouragement (sticking to budget), empathy (overspending), or humour when appropriate. Keep the query short (2–3 words). The caption is optional — use it sparingly.
 
 Remember: max 1 uiBlock per response. suggestedQuestions is always required (2–3 items).
 
