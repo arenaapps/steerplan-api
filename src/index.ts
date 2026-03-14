@@ -50,12 +50,16 @@ import { finexerConsentRoutes } from './routes/finexer/consent.js';
 import { finexerSyncRoutes } from './routes/finexer/sync.js';
 import { finexerDisconnectRoutes } from './routes/finexer/disconnect.js';
 import { giphyRoutes } from './routes/giphy.js';
+import { equifaxEnrichRoutes } from './routes/equifax/enrich.js';
+import { equifaxInsightsRoutes } from './routes/equifax/insights.js';
+import { equifaxCreditCheckRoutes } from './routes/equifax/credit-check.js';
 
 // Workers
 import { startEmailWorker } from './queues/workers/email.worker.js';
 import { startSyncWorker } from './queues/workers/sync.worker.js';
 import { startScoreWorker } from './queues/workers/score.worker.js';
 import { startEmbeddingWorker } from './queues/workers/embedding.worker.js';
+import { startEquifaxWorker } from './queues/workers/equifax.worker.js';
 
 const app = Fastify({ logger: true });
 
@@ -130,6 +134,11 @@ await app.register(async function apiRoutes(api) {
 
     // Giphy proxy
     await authed.register(giphyRoutes, { prefix: '/giphy' });
+
+    // Equifax routes
+    await authed.register(equifaxEnrichRoutes, { prefix: '/equifax/enrich' });
+    await authed.register(equifaxInsightsRoutes, { prefix: '/equifax/insights' });
+    await authed.register(equifaxCreditCheckRoutes, { prefix: '/equifax/credit-check' });
   });
 }, { prefix: '/api' });
 
@@ -138,6 +147,7 @@ startEmailWorker();
 startSyncWorker();
 startScoreWorker();
 startEmbeddingWorker();
+startEquifaxWorker();
 
 // ── Start server ──
 try {

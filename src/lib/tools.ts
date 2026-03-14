@@ -72,6 +72,16 @@ export const TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'get_credit_insights',
+    description:
+      'Get the user\'s credit health data including Financial Health Index (FHI) score, income verification grade, bureau score, risk flags, and income vs expenditure analysis from Equifax. Use this when the user asks about their credit score, financial health, or credit health.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
     name: 'search_financial_data',
     description:
       'Search the user\'s full financial history using semantic search. Use this when you need to find specific transactions, spending patterns, or financial details that are not in the dashboard context. For example: "What did I spend at Tesco in January?", "Show my Amazon purchases", "How much did I spend on transport last quarter?".',
@@ -147,6 +157,7 @@ export const AUTO_EXECUTE_TOOLS = new Set([
   'get_account_balance',
   'get_payees',
   'search_financial_data',
+  'get_credit_insights',
 ]);
 
 /** Tools that require user confirmation before execution */

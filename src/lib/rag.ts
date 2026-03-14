@@ -1,4 +1,5 @@
 import { searchEmbeddings, type ContentType } from './embeddings.js';
+import { supabase } from './supabase.js';
 
 /** Retrieve relevant context via vector search for a user's chat message */
 export async function retrieveContext(
@@ -6,8 +7,8 @@ export async function retrieveContext(
   message: string,
 ): Promise<string> {
   try {
-    // Run personal + knowledge base searches in parallel
-    const [personalResults, knowledgeResults] = await Promise.all([
+    // Run personal + knowledge base + credit data searches in parallel
+    const [personalResults, knowledgeResults, creditData] = await Promise.all([
       searchEmbeddings({
         userId,
         query: message,
@@ -22,9 +23,18 @@ export async function retrieveContext(
         limit: 5,
         threshold: 0.55,
       }),
+      Promise.resolve(
+        supabase
+          .from('credit_scores')
+          .select('fhi_score, fhi_flags, income_grade, bureau_score, disposable_income, total_income, total_expenditure, source, scored_at')
+          .eq('user_id', userId)
+          .order('scored_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      ).then((r) => r.data).catch(() => null),
     ]);
 
-    if (personalResults.length === 0 && knowledgeResults.length === 0) {
+    if (personalResults.length === 0 && knowledgeResults.length === 0 && !creditData) {
       return '';
     }
 
@@ -51,6 +61,22 @@ export async function retrieveContext(
     }
     if (knowledgeResults.length > 0) {
       sections.push(`### Financial Knowledge\n${knowledgeResults.map((r) => r.content).join('\n\n')}`);
+    }
+    if (creditData) {
+      const parts: string[] = [];
+      if (creditData.fhi_score) parts.push(`FHI Score: ${creditData.fhi_score}/9`);
+      if (creditData.income_grade) parts.push(`Income Grade: ${creditData.income_grade}`);
+      if (creditData.bureau_score) parts.push(`Bureau Score: ${creditData.bureau_score}`);
+      if (creditData.total_income) parts.push(`Monthly Income (Equifax): £${creditData.total_income}`);
+      if (creditData.total_expenditure) parts.push(`Monthly Expenditure (Equifax): £${creditData.total_expenditure}`);
+      if (creditData.disposable_income) parts.push(`Disposable Income: £${creditData.disposable_income}`);
+      const flags = creditData.fhi_flags || [];
+      if (Array.isArray(flags) && flags.length > 0) {
+        parts.push(`Risk Flags: ${flags.map((f: any) => `${f.flag} (${f.level})`).join(', ')}`);
+      }
+      if (parts.length > 0) {
+        sections.push(`### Credit Health\n${parts.join(' | ')}`);
+      }
     }
 
     return sections.join('\n\n');

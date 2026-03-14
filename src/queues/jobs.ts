@@ -46,6 +46,24 @@ export async function addScoreJob(
   });
 }
 
+// ── Equifax queue ──
+
+export const equifaxQueue = createQueue('equifax');
+
+export async function addEquifaxJob(
+  name: 'enrich' | 'fetch-insights' | 'credit-check',
+  data: { userId: string; months?: number },
+) {
+  const jobId = `equifax-${name}:${data.userId}`;
+  await equifaxQueue?.add(name, data, {
+    jobId,
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 3000 },
+    removeOnComplete: true,
+    removeOnFail: 5,
+  });
+}
+
 // ── Embedding queue ──
 
 export const embeddingQueue = createQueue('embedding');

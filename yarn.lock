@@ -476,6 +476,22 @@ fast-uri@^3.0.0, fast-uri@^3.0.1:
   resolved "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.0.tgz"
   integrity sha512-iPeeDKJSWf4IEOasVVrknXpaBV0IApz/gp7S2bb7Z4Lljbl2MGJRqInZiUrQwV16cpzw/D3S5j5Julj/gT52AA==
 
+fast-xml-builder@^1.1.3:
+  version "1.1.3"
+  resolved "https://registry.npmjs.org/fast-xml-builder/-/fast-xml-builder-1.1.3.tgz"
+  integrity sha512-1o60KoFw2+LWKQu3IdcfcFlGTW4dpqEWmjhYec6H82AYZU2TVBXep6tMl8Z1Y+wM+ZrzCwe3BZ9Vyd9N2rIvmg==
+  dependencies:
+    path-expression-matcher "^1.1.3"
+
+fast-xml-parser@^5.5.5:
+  version "5.5.5"
+  resolved "https://registry.npmjs.org/fast-xml-parser/-/fast-xml-parser-5.5.5.tgz"
+  integrity sha512-NLY+V5NNbdmiEszx9n14mZBseJTC50bRq1VHsaxOmR72JDuZt+5J1Co+dC/4JPnyq+WrIHNM69r0sqf7BMb3Mg==
+  dependencies:
+    fast-xml-builder "^1.1.3"
+    path-expression-matcher "^1.1.3"
+    strnum "^2.1.2"
+
 fastify-plugin@^5.0.0, fastify-plugin@^5.0.1:
   version "5.1.0"
   resolved "https://registry.npmjs.org/fastify-plugin/-/fastify-plugin-5.1.0.tgz"
@@ -763,6 +779,11 @@ openai@^6.27.0:
   resolved "https://registry.npmjs.org/openai/-/openai-6.27.0.tgz"
   integrity sha512-osTKySlrdYrLYTt0zjhY8yp0JUBmWDCN+Q+QxsV4xMQnnoVFpylgKGgxwN8sSdTNw0G4y+WUXs4eCMWpyDNWZQ==
 
+path-expression-matcher@^1.1.3:
+  version "1.1.3"
+  resolved "https://registry.npmjs.org/path-expression-matcher/-/path-expression-matcher-1.1.3.tgz"
+  integrity sha512-qdVgY8KXmVdJZRSS1JdEPOKPdTiEK/pi0RkcT2sw1RhXxohdujUlJFPuS1TSkevZ9vzd3ZlL7ULl1MHGTApKzQ==
+
 pino-abstract-transport@^3.0.0:
   version "3.0.0"
   resolved "https://registry.npmjs.org/pino-abstract-transport/-/pino-abstract-transport-3.0.0.tgz"
@@ -939,6 +960,11 @@ std-env@^3.9.0:
   version "3.10.0"
   resolved "https://registry.npmjs.org/std-env/-/std-env-3.10.0.tgz"
   integrity sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg==
+
+strnum@^2.1.2:
+  version "2.2.0"
+  resolved "https://registry.npmjs.org/strnum/-/strnum-2.2.0.tgz"
+  integrity sha512-Y7Bj8XyJxnPAORMZj/xltsfo55uOiyHcU2tnAVzHUnSJR/KsEX+9RoDeXEnsXtl/CX4fAcrt64gZ13aGaWPeBg==
 
 svix@^1.62.0, svix@^1.85.0:
   version "1.86.0"

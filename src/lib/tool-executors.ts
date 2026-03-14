@@ -23,6 +23,39 @@ interface PlaidAccountPayload {
   };
 }
 
+// ── Credit insights tool handler ──
+
+export async function executeGetCreditInsights(userId: string) {
+  // Latest score
+  const { data: latest } = await supabase
+    .from('credit_scores')
+    .select('*')
+    .eq('user_id', userId)
+    .order('scored_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!latest) {
+    return {
+      available: false,
+      message: 'No credit insights available yet. Connect a bank account and sync to generate credit insights.',
+    };
+  }
+
+  return {
+    available: true,
+    fhiScore: latest.fhi_score,
+    fhiFlags: latest.fhi_flags || [],
+    incomeGrade: latest.income_grade,
+    disposableIncome: latest.disposable_income,
+    totalIncome: latest.total_income,
+    totalExpenditure: latest.total_expenditure,
+    bureauScore: latest.bureau_score,
+    source: latest.source,
+    scoredAt: latest.scored_at,
+  };
+}
+
 // ── Auto-execute tool handlers ──
 
 export async function executeGetUserAccounts(userId: string) {
@@ -346,6 +379,9 @@ export async function executeAutoTool(
       break;
     case 'search_financial_data':
       result = await executeSearchFinancialData(userId, toolInput as any);
+      break;
+    case 'get_credit_insights':
+      result = await executeGetCreditInsights(userId);
       break;
     default:
       result = { error: `Unknown tool: ${toolName}` };

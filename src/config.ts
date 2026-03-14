@@ -64,4 +64,12 @@ export const config = {
   giphy: {
     get apiKey() { return required('GIPHY_API_KEY'); },
   },
+
+  equifax: {
+    get clientId() { return required('EQUIFAX_CLIENT_ID'); },
+    get clientSecret() { return required('EQUIFAX_CLIENT_SECRET'); },
+    get staticToken() { return process.env.EQUIFAX_STATIC_TOKEN || ''; },
+    get obiBaseUrl() { return optional('EQUIFAX_OBI_BASE_URL', 'https://api.sandbox.equifax.co.uk/open-banking-insights/v1'); },
+    get gwBaseUrl() { return optional('EQUIFAX_GW_BASE_URL', 'https://api.sandbox.equifax.co.uk/gateway/v1'); },
+  },
 };

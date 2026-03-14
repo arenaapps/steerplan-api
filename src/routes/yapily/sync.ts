@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { yapilyGet } from '../../lib/yapily.js';
 import { supabase } from '../../lib/supabase.js';
 import { decryptPayload, encryptPayload } from '../../lib/encryption.js';
-import { addEmbeddingJob } from '../../queues/jobs.js';
+import { addEmbeddingJob, addEquifaxJob } from '../../queues/jobs.js';
 
 const formatMoney = (amount: number, currency: string) => {
   try {
@@ -186,6 +186,9 @@ export async function yapilySyncRoutes(app: FastifyInstance) {
 
       // Fire-and-forget: index transactions for RAG
       void addEmbeddingJob('index-transactions', { userId }).catch(() => {});
+
+      // Fire-and-forget: enrich with Equifax credit insights
+      void addEquifaxJob('enrich', { userId }).catch(() => {});
 
       return reply.send({ ok: true });
     } catch (error: any) {
