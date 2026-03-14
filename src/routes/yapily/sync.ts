@@ -33,8 +33,11 @@ export async function yapilySyncRoutes(app: FastifyInstance) {
         let institutionName: string | null = null;
         try {
           const inst = await yapilyGet(`/institutions/${body.institutionId}`);
-          institutionName = inst.data?.name || null;
-        } catch { /* non-critical */ }
+          institutionName = inst.data?.name || inst.name || null;
+          request.log.info(`Yapily institution lookup: ${JSON.stringify({ id: body.institutionId, name: institutionName, keys: Object.keys(inst) })}`);
+        } catch (err: any) {
+          request.log.error(`Yapily institution lookup failed: ${err.message}`);
+        }
 
         await supabase
           .from('yapily_consents')
@@ -98,11 +101,11 @@ export async function yapilySyncRoutes(app: FastifyInstance) {
                   account.description ||
                   account.accountNames?.[0]?.name ||
                   'Account',
-                provider: consent.institution_name || 'Bank',
+                provider: consent.institution_name || consent.institution_id || 'Bank',
                 lastFour,
                 balance: formatMoney(account.balance ?? 0, account.currency || 'GBP'),
                 overdraft: '',
-                _institutionId: consent.institution_id,
+                institutionId: consent.institution_id,
               };
 
               const enc = await encryptPayload(bankAccountData);
