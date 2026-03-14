@@ -31,10 +31,14 @@ export async function yapilySyncRoutes(app: FastifyInstance) {
         });
 
         let institutionName: string | null = null;
+        let institutionIcon: string | null = null;
         try {
           const inst = await yapilyGet(`/institutions/${body.institutionId}`);
           institutionName = inst.data?.name || inst.name || null;
-          request.log.info(`Yapily institution lookup: ${JSON.stringify({ id: body.institutionId, name: institutionName, keys: Object.keys(inst) })}`);
+          const media = inst.data?.media || inst.media || [];
+          institutionIcon = media.find((m: any) => m.type === 'icon')?.source
+            || media.find((m: any) => m.type === 'logo')?.source
+            || null;
         } catch (err: any) {
           request.log.error(`Yapily institution lookup failed: ${err.message}`);
         }
@@ -80,6 +84,16 @@ export async function yapilySyncRoutes(app: FastifyInstance) {
           if (!payload?.consentToken) return;
           const { consentToken } = payload;
 
+          // Fetch institution icon
+          let logoUrl: string | null = null;
+          try {
+            const inst = await yapilyGet(`/institutions/${consent.institution_id}`);
+            const media = inst.data?.media || inst.media || [];
+            logoUrl = media.find((m: any) => m.type === 'icon')?.source
+              || media.find((m: any) => m.type === 'logo')?.source
+              || null;
+          } catch { /* non-critical */ }
+
           let accountsRes: any;
           try {
             accountsRes = await yapilyGet('/accounts', consentToken);
@@ -106,6 +120,7 @@ export async function yapilySyncRoutes(app: FastifyInstance) {
                 balance: formatMoney(account.balance ?? 0, account.currency || 'GBP'),
                 overdraft: '',
                 institutionId: consent.institution_id,
+                logoUrl,
               };
 
               const enc = await encryptPayload(bankAccountData);
