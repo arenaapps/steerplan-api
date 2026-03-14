@@ -31,6 +31,7 @@ import { merchantRulesRoutes } from './routes/data/merchant-rules.js';
 import { chatRoutes } from './routes/ai/chat.js';
 import { confirmRoutes } from './routes/ai/confirm.js';
 import { categoriseRoutes } from './routes/ai/categorise.js';
+import { classifyIncomeRoutes } from './routes/ai/classify-income.js';
 import { briefingRoutes } from './routes/ai/briefing.js';
 import { transcribeRoutes } from './routes/ai/transcribe.js';
 import { ttsRoutes } from './routes/ai/tts.js';
@@ -101,6 +102,7 @@ await app.register(async function apiRoutes(api) {
     await authed.register(chatRoutes, { prefix: '/ai/chat' });
     await authed.register(confirmRoutes, { prefix: '/ai/chat/confirm' });
     await authed.register(categoriseRoutes, { prefix: '/ai/categorise' });
+    await authed.register(classifyIncomeRoutes, { prefix: '/ai/classify-income' });
     await authed.register(briefingRoutes, { prefix: '/ai/briefing' });
     await authed.register(transcribeRoutes, { prefix: '/ai/transcribe' });
     await authed.register(ttsRoutes, { prefix: '/ai/tts' });
