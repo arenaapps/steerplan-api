@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { supabase } from '../../lib/supabase.js';
 import { decryptPayload, encryptPayload } from '../../lib/encryption.js';
+import { addEmbeddingJob } from '../../queues/jobs.js';
 
 export async function incomeSourcesRoutes(app: FastifyInstance) {
   app.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -36,6 +37,9 @@ export async function incomeSourcesRoutes(app: FastifyInstance) {
         const { error } = await supabase.from('income_sources').insert(rows);
         if (error) throw error;
       }
+
+      // Fire-and-forget: re-index income for RAG
+      void addEmbeddingJob('index-income', { userId: request.userId }).catch(() => {});
 
       return reply.send({ ok: true });
     } catch (error: any) {

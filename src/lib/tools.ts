@@ -72,6 +72,30 @@ export const TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'search_financial_data',
+    description:
+      'Search the user\'s full financial history using semantic search. Use this when you need to find specific transactions, spending patterns, or financial details that are not in the dashboard context. For example: "What did I spend at Tesco in January?", "Show my Amazon purchases", "How much did I spend on transport last quarter?".',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Natural language search query describing what financial data to find.',
+        },
+        content_types: {
+          type: 'array',
+          items: { type: 'string', enum: ['transaction', 'income', 'outgoing', 'budget'] },
+          description: 'Optional filter to search only specific data types. Defaults to all types.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum number of results to return (default 25, max 50).',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'create_standing_order',
     description:
       'Set up a recurring standing order to a recipient. This requires user confirmation before execution.',
@@ -122,6 +146,7 @@ export const AUTO_EXECUTE_TOOLS = new Set([
   'get_user_accounts',
   'get_account_balance',
   'get_payees',
+  'search_financial_data',
 ]);
 
 /** Tools that require user confirmation before execution */

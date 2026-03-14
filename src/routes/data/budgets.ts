@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { supabase } from '../../lib/supabase.js';
+import { addEmbeddingJob } from '../../queues/jobs.js';
 
 export async function budgetsRoutes(app: FastifyInstance) {
   app.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -38,6 +39,10 @@ export async function budgetsRoutes(app: FastifyInstance) {
         .single();
 
       if (error) throw error;
+
+      // Fire-and-forget: re-index budgets for RAG
+      void addEmbeddingJob('index-budgets', { userId: request.userId }).catch(() => {});
+
       return reply.send(data);
     } catch (error: any) {
       return reply.code(500).send({ error: error?.message || 'Failed to create budget' });

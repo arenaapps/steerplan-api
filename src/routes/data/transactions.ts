@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { supabase } from '../../lib/supabase.js';
+import { addEmbeddingJob } from '../../queues/jobs.js';
 
 const TX_COLUMNS = 'id, date, amount, currency, direction, description, merchant, category, "accountId", "isRecurring", "affectsPlan", "affectsPlanReason", tags';
 
@@ -79,6 +80,9 @@ export async function transactionsRoutes(app: FastifyInstance) {
           .upsert(rows, { onConflict: 'id' });
         if (error) throw error;
       }
+
+      // Fire-and-forget: re-index transactions for RAG
+      void addEmbeddingJob('index-transactions', { userId }).catch(() => {});
 
       return reply.send({ ok: true });
     } catch (error: any) {

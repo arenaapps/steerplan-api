@@ -55,6 +55,7 @@ import { giphyRoutes } from './routes/giphy.js';
 import { startEmailWorker } from './queues/workers/email.worker.js';
 import { startSyncWorker } from './queues/workers/sync.worker.js';
 import { startScoreWorker } from './queues/workers/score.worker.js';
+import { startEmbeddingWorker } from './queues/workers/embedding.worker.js';
 
 const app = Fastify({ logger: true });
 
@@ -136,6 +137,7 @@ await app.register(async function apiRoutes(api) {
 startEmailWorker();
 startSyncWorker();
 startScoreWorker();
+startEmbeddingWorker();
 
 // ── Start server ──
 try {

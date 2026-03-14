@@ -6,6 +6,7 @@
  *   {{DASHBOARD_STATE}} – JSON-stringified dashboard context
  *   {{ACCOUNT_CONTEXT}} – scoped account or "All Accounts"
  *   {{FINANCE_LITERACY}} – noob | intermediate | advanced
+ *   {{RAG_CONTEXT}}      – vector-retrieved context (injected server-side)
  */
 export const SYSTEM_INSTRUCTION_TEMPLATE = `
 # STEERPLAN CFO AGENT
@@ -16,6 +17,8 @@ You are {{USER_NAME}}'s **"Steerplan CFO Agent"**.
 Current Dashboard State: {{DASHBOARD_STATE}}
 {{ACCOUNT_CONTEXT}}
 Finance Literacy Level: {{FINANCE_LITERACY}}
+
+{{RAG_CONTEXT}}
 
 You act as a disciplined Personal CFO and Wealth Strategist — but keep the tone warm, encouraging, and human, like a trusted friend.
 

@@ -1,6 +1,7 @@
 import { plaidClient } from './plaid.js';
 import { supabase } from './supabase.js';
 import { decryptPayload } from './encryption.js';
+import { searchEmbeddings, type ContentType } from './embeddings.js';
 import {
   PaymentAmountCurrency,
   PaymentInitiationPaymentCreateRequest,
@@ -85,6 +86,28 @@ export async function executeGetPayees(userId: string) {
 
   if (error) throw new Error(`Failed to fetch payees: ${error.message}`);
   return { payees: data || [] };
+}
+
+export async function executeSearchFinancialData(
+  userId: string,
+  input: { query: string; content_types?: ContentType[]; limit?: number },
+) {
+  const results = await searchEmbeddings({
+    userId,
+    query: input.query,
+    contentTypes: input.content_types,
+    limit: Math.min(input.limit || 25, 50),
+  });
+
+  return {
+    results: results.map((r) => ({
+      type: r.content_type,
+      content: r.content,
+      metadata: r.metadata,
+      relevance: Math.round(r.similarity * 100) / 100,
+    })),
+    total: results.length,
+  };
 }
 
 // ── Confirmation tool handlers (called after user confirms) ──
@@ -320,6 +343,9 @@ export async function executeAutoTool(
       break;
     case 'get_payees':
       result = await executeGetPayees(userId);
+      break;
+    case 'search_financial_data':
+      result = await executeSearchFinancialData(userId, toolInput as any);
       break;
     default:
       result = { error: `Unknown tool: ${toolName}` };

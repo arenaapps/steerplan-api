@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase.js';
 import { aiChatLimiter, checkRateLimit, rateLimitHeaders } from '../../lib/rate-limit.js';
 import { TOOLS, AUTO_EXECUTE_TOOLS, CONFIRMATION_TOOLS } from '../../lib/tools.js';
 import { executeAutoTool } from '../../lib/tool-executors.js';
+import { retrieveContext } from '../../lib/rag.js';
 import { Redis } from '@upstash/redis';
 import { config } from '../../config.js';
 import { randomUUID } from 'crypto';
@@ -132,11 +133,24 @@ export async function chatRoutes(app: FastifyInstance) {
     const { message, history, context, accountContext, userName, financeLiteracy } =
       request.body as any;
 
+    // Retrieve RAG context (fire in parallel with system instruction build)
+    let ragContext = '';
+    try {
+      ragContext = await retrieveContext(userId, message);
+    } catch (err: any) {
+      request.log.error(`RAG retrieval failed: ${err.message}`);
+    }
+
+    const ragSection = ragContext
+      ? `## Retrieved Financial Context\nThe following data was retrieved based on relevance to the user's question. Use it to provide accurate, specific answers.\n\n${ragContext}`
+      : '';
+
     const systemInstruction = SYSTEM_INSTRUCTION_TEMPLATE
       .replace('{{USER_NAME}}', userName || 'there')
       .replace('{{DASHBOARD_STATE}}', JSON.stringify(context || {}))
       .replace('{{ACCOUNT_CONTEXT}}', accountContext || '')
-      .replace('{{FINANCE_LITERACY}}', financeLiteracy || 'intermediate');
+      .replace('{{FINANCE_LITERACY}}', financeLiteracy || 'intermediate')
+      .replace('{{RAG_CONTEXT}}', ragSection);
 
     const messages: Anthropic.MessageParam[] = [
       ...(history || []).map((m: { role: string; text: string }) => ({

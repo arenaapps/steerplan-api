@@ -45,3 +45,23 @@ export async function addScoreJob(
     backoff: { type: 'exponential', delay: 1000 },
   });
 }
+
+// ── Embedding queue ──
+
+export const embeddingQueue = createQueue('embedding');
+
+export async function addEmbeddingJob(
+  name: 'index-transactions' | 'index-income' | 'index-outgoings' | 'index-budgets' | 'index-all' | 'delete-user',
+  data: { userId: string },
+  opts?: { delay?: number }
+) {
+  const jobId = `${name}:${data.userId}`;
+  await embeddingQueue?.add(name, data, {
+    jobId,
+    delay: opts?.delay ?? 2000,
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 2000 },
+    removeOnComplete: true,
+    removeOnFail: 5,
+  });
+}
